@@ -4,18 +4,36 @@ import com.sakh.telegrambot.config.BotConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
+import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
 
     final BotConfig botConfig;
+    final static String HELP_TEXT = "there is some info about bot and its commands\n\n";
 
     TelegramBot(BotConfig botConfig) {
         this.botConfig = botConfig;
+        List<BotCommand> listOfBotCommands = new ArrayList<>();
+        listOfBotCommands.add(new BotCommand("/help", "get info about this bot"));
+        listOfBotCommands.add(new BotCommand("/start", "get welcoming message"));
+        listOfBotCommands.add(new BotCommand("/getmydata", "get my data"));
+        listOfBotCommands.add(new BotCommand("/deletemydata", "delete my data"));
+        listOfBotCommands.add(new BotCommand("/settings", "get settings"));
+        try {
+            this.execute(new SetMyCommands(listOfBotCommands, new BotCommandScopeDefault(), null));
+        } catch (TelegramApiException e) {
+            log.error("Error occurred in setting the bot's menu" + e.getMessage());
+        }
     }
 
     @Override
@@ -37,6 +55,9 @@ public class TelegramBot extends TelegramLongPollingBot {
             switch (messageText) {
                 case "/start":
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
+                    break;
+                case "/help":
+                    sendMessage(chatId, HELP_TEXT);
                     break;
                 default:
                     log.info("unknown command:" + messageText);
