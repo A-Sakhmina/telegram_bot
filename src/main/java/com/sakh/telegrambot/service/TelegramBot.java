@@ -1,16 +1,22 @@
 package com.sakh.telegrambot.service;
 
 import com.sakh.telegrambot.config.BotConfig;
+import com.sakh.telegrambot.model.User;
+import com.sakh.telegrambot.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Chat;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,7 +24,11 @@ import java.util.List;
 @Slf4j
 public class TelegramBot extends TelegramLongPollingBot {
 
+    @Autowired
+    private UserRepository userRepository;
+
     final BotConfig botConfig;
+
     final static String HELP_TEXT = "there is some info about bot and its commands\n\n";
 
     TelegramBot(BotConfig botConfig) {
@@ -54,6 +64,7 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             switch (messageText) {
                 case "/start":
+                    registerUser(update.getMessage());
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     break;
                 case "/help":
@@ -64,6 +75,26 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId, "Command is not found. Try again!");
 
             }
+
+        }
+    }
+
+    private void registerUser(Message msg) {
+        if (userRepository.findById(msg.getChatId()).isEmpty()) {
+            Long chatId = msg.getChatId();
+            Chat chat = msg.getChat();
+
+            User user = new User();
+
+            user.setChatId(chatId);
+            user.setFirstName(chat.getFirstName());
+            user.setLastName(chat.getLastName());
+            user.setUserName(chat.getUserName());
+            user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+
+            userRepository.save(user);
+            log.info("user added" + user.toString());
+
 
         }
     }
